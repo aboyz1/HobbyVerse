@@ -62,15 +62,15 @@ Hobbyverse/
 
 ## Features
 
-- 🔐 **Authentication**: Email/password + Google OAuth
-- 👥 **Squads**: Hyper-specific interest groups with privacy controls
-- 🚀 **Projects**: Collaborative project sharing with file uploads
-- 🏆 **Challenges**: Weekly/monthly tasks with points and badges
-- 🎮 **Gamification**: Points, badges, leaderboards, and levels
-- 💬 **Real-time Chat**: WebSocket-based communication with typing indicators
-- 📱 **Push Notifications**: Stay updated on activities
-- 🔍 **Discovery**: AI-assisted recommendations and search
-- 📊 **Analytics**: User activity and engagement tracking
+- **Authentication**: Email/password + Google OAuth
+- **Squads**: Hyper-specific interest groups with privacy controls
+- **Projects**: Collaborative project sharing with file uploads
+- **Challenges**: Weekly/monthly tasks with points and badges
+- **Gamification**: Points, badges, leaderboards, and levels
+- **Real-time Chat**: WebSocket-based communication with typing indicators
+- **Push Notifications**: Stay updated on activities
+- **Discovery**: AI-assisted recommendations and search
+- **Analytics**: User activity and engagement tracking
 
 ## Tech Stack
 
