@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Hobbyverse",
+    "slug": "hobbyverse",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#6366f1"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hobbyverse.app"
+    },
+    "android": {
+      "package": "com.hobbyverse.app",
+      "compileSdkVersion": 35,
+      "targetSdkVersion": 35
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#6366f1"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them in projects and profiles."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Hobbyverse to access your camera to take photos for projects."
+        }
+      ],
+      [
+        "expo-document-picker",
+        {
+          "iCloudContainerEnvironment": "Production"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "scheme": "hobbyverse"
+  }
+}
