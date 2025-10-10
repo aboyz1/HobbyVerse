@@ -5,6 +5,7 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  Share,
 } from "react-native";
 import {
   Text,
@@ -540,6 +541,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       }
     };
 
+    // Handle share action
+    const handleShare = async () => {
+      try {
+        const content = getContent();
+        const title = getTitle();
+        const message = title ? `${title}\n\n${content}` : content;
+        const url = `https://hobbyverse.app/post/${item.id}`; // You can customize this URL structure
+
+        await Share.share({
+          message: `${message}\n\n${url}`,
+          url: url, // iOS only
+        });
+      } catch (error) {
+        console.log("Failed to share item", error);
+      }
+    };
+
     return (
       <View style={styles.feedItemContainer}>
         <View style={styles.feedItemHeader}>
@@ -729,7 +747,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <Text style={styles.feedItemActionText}>{currentRepostCount}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.feedItemAction}>
+          <TouchableOpacity style={styles.feedItemAction} onPress={handleShare}>
             <MaterialIcons
               name="share"
               size={18}
