@@ -14,6 +14,7 @@ import {
   IconButton,
   ActivityIndicator,
   Button,
+  Divider,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "react-native-paper";
@@ -36,77 +37,6 @@ const GamificationDashboardScreen: React.FC<
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Mock data for demonstration
-  const mockStats = {
-    totalPoints: 2450,
-    level: 12,
-    nextLevelPoints: 3000,
-    currentLevelPoints: 2000,
-    badgesCount: 8,
-    rank: 15,
-  };
-
-  const mockBadges = [
-    {
-      id: "1",
-      name: "First Post",
-      icon: "edit",
-      earned: true,
-      rarity: "common",
-    },
-    {
-      id: "2",
-      name: "Helpful User",
-      icon: "thumb-up",
-      earned: true,
-      rarity: "common",
-    },
-    {
-      id: "3",
-      name: "Project Enthusiast",
-      icon: "folder",
-      earned: true,
-      rarity: "uncommon",
-    },
-    {
-      id: "4",
-      name: "Challenge Master",
-      icon: "trophy",
-      earned: false,
-      rarity: "rare",
-    },
-  ];
-
-  const mockLeaderboard = [
-    {
-      id: "1",
-      rank: 1,
-      user: {
-        display_name: "HobbyMaster",
-        avatar_url: "https://via.placeholder.com/40",
-      },
-      points: 12500,
-    },
-    {
-      id: "2",
-      rank: 2,
-      user: {
-        display_name: "CraftKing",
-        avatar_url: "https://via.placeholder.com/40",
-      },
-      points: 11200,
-    },
-    {
-      id: "3",
-      rank: 3,
-      user: {
-        display_name: "ArtQueen",
-        avatar_url: "https://via.placeholder.com/40",
-      },
-      points: 9800,
-    },
-  ];
-
   useEffect(() => {
     fetchGamificationData();
   }, []);
@@ -114,18 +44,45 @@ const GamificationDashboardScreen: React.FC<
   const fetchGamificationData = async () => {
     try {
       setLoading(true);
-      // In a real app, we would call the API:
-      // const statsResponse = await GamificationService.getUserStats();
-      // const badgesResponse = await GamificationService.getUserBadges();
-      // const leaderboardResponse = await GamificationService.getLeaderboard();
+      // Fetch real data from the API
+      const [leaderboardResponse, badgesResponse] = await Promise.all([
+        GamificationService.getLeaderboard("global", 3),
+        GamificationService.getUserBadges(),
+      ]);
 
-      // Simulate API calls with mock data
-      setTimeout(() => {
-        setStats(mockStats);
-        setBadges(mockBadges);
-        setLeaderboard(mockLeaderboard);
-        setLoading(false);
-      }, 1000);
+      // Process leaderboard data - the data is in leaderboard property
+      if (leaderboardResponse.success) {
+        // Handle the response structure properly
+        const leaderboardData =
+          (leaderboardResponse as any).leaderboard ||
+          leaderboardResponse.data ||
+          [];
+        setLeaderboard(Array.isArray(leaderboardData) ? leaderboardData : []);
+      }
+
+      // Process badges data - the data is in badges property
+      if (badgesResponse.success) {
+        // Handle the response structure properly
+        const badgesData =
+          (badgesResponse as any).badges || badgesResponse.data || [];
+        setBadges(Array.isArray(badgesData) ? badgesData : []);
+      }
+
+      // Set stats from user data
+      setStats({
+        totalPoints: user?.total_points || 0,
+        level: user?.level || 1,
+        nextLevelPoints: ((user?.level || 1) + 1) * 100,
+        currentLevelPoints: (user?.level || 1) * 100,
+        badgesCount: Array.isArray(
+          (badgesResponse as any).badges || badgesResponse.data
+        )
+          ? ((badgesResponse as any).badges || badgesResponse.data).length
+          : 0,
+        rank: 0, // We don't have rank in this response
+      });
+
+      setLoading(false);
     } catch (err) {
       console.error("Error fetching gamification data:", err);
       setLoading(false);
@@ -139,27 +96,31 @@ const GamificationDashboardScreen: React.FC<
   };
 
   const getRarityColor = (rarity: string) => {
+    // Use colors that match the leaderboard screen color palette
     switch (rarity) {
       case "common":
-        return "#B0BEC5";
+        return theme.colors.onSurfaceVariant; // Use theme color instead of custom color
       case "uncommon":
-        return "#81C784";
+        return theme.colors.primary; // Use primary color
       case "rare":
-        return "#4FC3F7";
+        return theme.colors.onSurface; // Use theme color
       case "epic":
-        return "#AB47BC";
+        return theme.colors.primary; // Use primary color
       default:
-        return theme.colors.onSurface;
+        return theme.colors.outline;
     }
   };
 
   const renderProgressCard = () => {
     if (!stats) return null;
 
+    // Avoid division by zero
     const progress =
-      ((stats.totalPoints - stats.currentLevelPoints) /
-        (stats.nextLevelPoints - stats.currentLevelPoints)) *
-      100;
+      stats.nextLevelPoints > stats.currentLevelPoints
+        ? ((stats.totalPoints - stats.currentLevelPoints) /
+            (stats.nextLevelPoints - stats.currentLevelPoints)) *
+          100
+        : 0;
 
     return (
       <Card style={styles.progressCard}>
@@ -178,7 +139,7 @@ const GamificationDashboardScreen: React.FC<
                 { color: theme.colors.onSurfaceVariant },
               ]}
             >
-              Rank #{stats.rank}
+              {stats.totalPoints} points
             </Text>
           </View>
 
@@ -187,7 +148,7 @@ const GamificationDashboardScreen: React.FC<
               style={[
                 styles.progressBar,
                 {
-                  width: `${progress}%`,
+                  width: `${Math.min(Math.max(progress, 0), 100)}%`,
                   backgroundColor: theme.colors.primary,
                 },
               ]}
@@ -199,7 +160,7 @@ const GamificationDashboardScreen: React.FC<
               variant="bodyMedium"
               style={[styles.progressText, { color: theme.colors.onSurface }]}
             >
-              {stats.totalPoints - stats.currentLevelPoints} /{" "}
+              {Math.max(stats.totalPoints - stats.currentLevelPoints, 0)} /{" "}
               {stats.nextLevelPoints - stats.currentLevelPoints} pts
             </Text>
             <Text
@@ -224,7 +185,7 @@ const GamificationDashboardScreen: React.FC<
           >
             Badges
           </Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => appNavigation.navigate("Badges")}>
             <Text variant="bodyMedium" style={{ color: theme.colors.primary }}>
               View All
             </Text>
@@ -232,23 +193,23 @@ const GamificationDashboardScreen: React.FC<
         </View>
 
         <View style={styles.badgesContainer}>
-          {badges.map((badge) => (
+          {(badges || []).slice(0, 4).map((badge) => (
             <View
               key={badge.id}
               style={[
                 styles.badgeItem,
                 {
-                  borderColor: badge.earned
+                  borderColor: badge.rarity
                     ? getRarityColor(badge.rarity)
                     : theme.colors.outline,
                 },
               ]}
             >
               <MaterialIcons
-                name={badge.icon as any}
+                name={badge.icon || "star"} // Default icon if none provided
                 size={24}
                 color={
-                  badge.earned
+                  badge.rarity
                     ? getRarityColor(badge.rarity)
                     : theme.colors.onSurfaceVariant
                 }
@@ -276,44 +237,66 @@ const GamificationDashboardScreen: React.FC<
           >
             Top Users
           </Text>
-          <TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => appNavigation.navigate("Leaderboard")}
+          >
             <Text variant="bodyMedium" style={{ color: theme.colors.primary }}>
               View Full Leaderboard
             </Text>
           </TouchableOpacity>
         </View>
 
-        {leaderboard.map((entry) => (
-          <View key={entry.id} style={styles.leaderboardItem}>
-            <Text
-              variant="bodyMedium"
-              style={[styles.rank, { color: theme.colors.onSurface }]}
-            >
-              {entry.rank}.
-            </Text>
-            <Avatar.Image
-              size={32}
-              source={{ uri: entry.user.avatar_url }}
-              style={styles.leaderboardAvatar}
-            />
-            <Text
-              variant="bodyMedium"
-              style={[
-                styles.leaderboardName,
-                { color: theme.colors.onSurface },
-              ]}
-            >
-              {entry.user.display_name}
-            </Text>
-            <Text
-              variant="bodyMedium"
-              style={[
-                styles.leaderboardPoints,
-                { color: theme.colors.onSurface },
-              ]}
-            >
-              {entry.points.toLocaleString()}
-            </Text>
+        {(leaderboard || []).map((entry, index) => (
+          <View key={entry.id}>
+            <View style={styles.leaderboardItem}>
+              <View style={styles.leaderboardRankContainer}>
+                <Text variant="titleLarge" style={styles.leaderboardRankText}>
+                  {entry.rank}.
+                </Text>
+              </View>
+
+              <Avatar.Image
+                size={50}
+                source={{
+                  uri: entry.avatar_url || "https://via.placeholder.com/50",
+                }}
+                style={styles.leaderboardAvatar}
+              />
+
+              <View style={styles.leaderboardUserInfo}>
+                <Text
+                  variant="titleMedium"
+                  style={styles.leaderboardDisplayName}
+                >
+                  {entry.display_name || "Unknown User"}
+                </Text>
+                <View style={styles.leaderboardLevelContainer}>
+                  <MaterialIcons
+                    name="star"
+                    size={16}
+                    color={theme.colors.primary}
+                  />
+                  <Text
+                    variant="bodyMedium"
+                    style={styles.leaderboardLevelText}
+                  >
+                    Level {entry.level || 1}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.leaderboardPointsContainer}>
+                <Text
+                  variant="titleMedium"
+                  style={styles.leaderboardPointsText}
+                >
+                  {(entry.total_points || 0).toLocaleString()}
+                </Text>
+              </View>
+            </View>
+            {index < leaderboard.length - 1 && (
+              <Divider style={styles.divider} />
+            )}
           </View>
         ))}
       </Card.Content>
@@ -327,6 +310,7 @@ const GamificationDashboardScreen: React.FC<
         onPress={() => appNavigation.navigate("PointsHistory")}
         style={styles.quickActionButton}
         icon="history"
+        textColor={theme.colors.primary}
       >
         Points History
       </Button>
@@ -335,6 +319,7 @@ const GamificationDashboardScreen: React.FC<
         onPress={() => appNavigation.navigate("Badges")}
         style={styles.quickActionButton}
         icon="star"
+        textColor={theme.colors.primary}
       >
         All Badges
       </Button>
@@ -366,11 +351,41 @@ const GamificationDashboardScreen: React.FC<
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
+      <View style={styles.header}>
+        <Text
+          variant="headlineMedium"
+          style={[styles.title, { color: theme.colors.onBackground }]}
+        >
+          Gamification
+        </Text>
+      </View>
+
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        <Card style={styles.infoCard}>
+          <Card.Content>
+            <View style={styles.infoRow}>
+              <MaterialIcons
+                name="info"
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text
+                variant="bodyMedium"
+                style={{
+                  color: theme.colors.onSurface,
+                  marginLeft: spacing.sm,
+                }}
+              >
+                Track your progress, earn badges, and climb the leaderboard!
+              </Text>
+            </View>
+          </Card.Content>
+        </Card>
+
         {renderProgressCard()}
         {renderBadgesSection()}
         {renderLeaderboardSection()}
@@ -389,8 +404,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  header: {
+    padding: spacing.lg,
+    backgroundColor: "#f8f8f8", // Same as leaderboard
+  },
+  title: {
+    ...typography.h3,
+    marginBottom: 0,
+  },
+  infoCard: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    backgroundColor: "#e3f2fd", // Same as leaderboard
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   progressCard: {
-    margin: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
     elevation: 2,
   },
   levelContainer: {
@@ -407,7 +440,7 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     height: 10,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: "#e3f2fd", // Use same color as info card instead of #e0e0e0
     borderRadius: 5,
     marginBottom: spacing.sm,
   },
@@ -454,22 +487,47 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     textAlign: "center",
   },
+  // Updated leaderboard styles to match leaderboard screen
   leaderboardItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
   },
-  rank: {
-    width: 20,
+  leaderboardRankContainer: {
+    width: 40,
+    alignItems: "center",
+  },
+  leaderboardRankText: {
+    fontWeight: "bold",
   },
   leaderboardAvatar: {
     marginHorizontal: spacing.sm,
   },
-  leaderboardName: {
+  leaderboardUserInfo: {
     flex: 1,
+    marginLeft: spacing.sm,
   },
-  leaderboardPoints: {
-    fontWeight: "600",
+  leaderboardDisplayName: {
+    ...typography.h6,
+  },
+  leaderboardLevelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: spacing.xs,
+  },
+  leaderboardLevelText: {
+    ...typography.caption,
+    color: "#666", // Same as leaderboard
+    marginLeft: spacing.xs,
+  },
+  leaderboardPointsContainer: {
+    alignItems: "flex-end",
+  },
+  leaderboardPointsText: {
+    ...typography.h6,
+  },
+  divider: {
+    marginVertical: spacing.sm,
   },
   quickActionsContainer: {
     flexDirection: "row",

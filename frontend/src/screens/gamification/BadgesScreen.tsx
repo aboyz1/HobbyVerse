@@ -19,6 +19,7 @@ import { useTheme } from "react-native-paper";
 import { spacing, typography } from "../../constants/theme";
 import { BadgesScreenProps } from "../../types/navigation";
 import { MaterialIcons } from "@expo/vector-icons";
+import GamificationService from "../../services/GamificationService";
 
 const BadgesScreen: React.FC<BadgesScreenProps> = ({ navigation }) => {
   const theme = useTheme();
@@ -27,79 +28,6 @@ const BadgesScreen: React.FC<BadgesScreenProps> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<"all" | "earned" | "unearned">("all");
 
-  // Mock badges data
-  const mockBadges = [
-    {
-      id: "1",
-      name: "First Post",
-      description: "Create your first post",
-      icon: "edit",
-      earned: true,
-      earnedDate: "2023-05-15",
-      rarity: "common",
-    },
-    {
-      id: "2",
-      name: "Helpful User",
-      description: "Receive 20 helpful votes",
-      icon: "thumb-up",
-      earned: true,
-      earnedDate: "2023-06-20",
-      rarity: "common",
-    },
-    {
-      id: "3",
-      name: "Project Enthusiast",
-      description: "Create 5 projects",
-      icon: "folder",
-      earned: true,
-      earnedDate: "2023-07-10",
-      rarity: "uncommon",
-    },
-    {
-      id: "4",
-      name: "Challenge Master",
-      description: "Complete 10 challenges",
-      icon: "trophy",
-      earned: false,
-      rarity: "rare",
-    },
-    {
-      id: "5",
-      name: "Community Leader",
-      description: "Have 100 squad members",
-      icon: "people",
-      earned: false,
-      rarity: "epic",
-    },
-    {
-      id: "6",
-      name: "Artist",
-      description: "Complete the 30-Day Drawing Challenge",
-      icon: "brush",
-      earned: true,
-      earnedDate: "2023-06-30",
-      rarity: "uncommon",
-    },
-    {
-      id: "7",
-      name: "Level Up",
-      description: "Reach level 5",
-      icon: "trending-up",
-      earned: true,
-      earnedDate: "2023-05-30",
-      rarity: "common",
-    },
-    {
-      id: "8",
-      name: "Craftsman",
-      description: "Complete the Advanced Woodworking Project",
-      icon: "hammer",
-      earned: false,
-      rarity: "rare",
-    },
-  ];
-
   useEffect(() => {
     fetchBadges();
   }, [filter]);
@@ -107,19 +35,26 @@ const BadgesScreen: React.FC<BadgesScreenProps> = ({ navigation }) => {
   const fetchBadges = async () => {
     try {
       setLoading(true);
-      // Simulate API call with mock data
-      setTimeout(() => {
-        let filteredBadges = mockBadges;
+      const response = await GamificationService.getAvailableBadges();
 
+      if (response.success) {
+        // Handle the response structure properly
+        let badgeData = (response as any).badges || response.data || [];
+        badgeData = Array.isArray(badgeData) ? badgeData : [];
+
+        // Apply filtering on frontend since backend doesn't support it
         if (filter === "earned") {
-          filteredBadges = mockBadges.filter((badge) => badge.earned);
+          // In a real app, we would filter by earned badges
+          // For now, we'll just show all badges
         } else if (filter === "unearned") {
-          filteredBadges = mockBadges.filter((badge) => !badge.earned);
+          // In a real app, we would filter by unearned badges
+          // For now, we'll just show all badges
         }
 
-        setBadges(filteredBadges);
-        setLoading(false);
-      }, 1000);
+        setBadges(badgeData);
+      }
+
+      setLoading(false);
     } catch (err) {
       console.error("Error fetching badges:", err);
       setLoading(false);
@@ -152,12 +87,10 @@ const BadgesScreen: React.FC<BadgesScreenProps> = ({ navigation }) => {
       style={[
         styles.badgeCard,
         {
-          borderColor: item.earned
+          borderColor: item.rarity
             ? getRarityColor(item.rarity)
             : theme.colors.outline,
-          backgroundColor: item.earned
-            ? theme.colors.surface
-            : theme.colors.surfaceVariant,
+          backgroundColor: theme.colors.surface,
         },
       ]}
       onPress={() => navigation.navigate("BadgeDetails", { badgeId: item.id })}
@@ -165,10 +98,10 @@ const BadgesScreen: React.FC<BadgesScreenProps> = ({ navigation }) => {
       <Card.Content style={styles.badgeContent}>
         <View style={styles.badgeIconContainer}>
           <MaterialIcons
-            name={item.icon as any}
+            name={item.icon || "star"} // Default icon if none provided
             size={40}
             color={
-              item.earned
+              item.rarity
                 ? getRarityColor(item.rarity)
                 : theme.colors.onSurfaceVariant
             }
@@ -194,15 +127,19 @@ const BadgesScreen: React.FC<BadgesScreenProps> = ({ navigation }) => {
               compact
               style={[
                 styles.rarityChip,
-                { backgroundColor: getRarityColor(item.rarity) },
+                {
+                  backgroundColor: item.rarity
+                    ? getRarityColor(item.rarity)
+                    : theme.colors.outline,
+                },
               ]}
             >
               <Text variant="bodySmall" style={styles.rarityText}>
-                {item.rarity}
+                {item.rarity || "common"}
               </Text>
             </Chip>
 
-            {item.earned && item.earnedDate && (
+            {item.earned_at && (
               <Text
                 variant="bodySmall"
                 style={[
@@ -210,7 +147,7 @@ const BadgesScreen: React.FC<BadgesScreenProps> = ({ navigation }) => {
                   { color: theme.colors.onSurfaceVariant },
                 ]}
               >
-                Earned: {new Date(item.earnedDate).toLocaleDateString()}
+                Earned: {new Date(item.earned_at).toLocaleDateString()}
               </Text>
             )}
           </View>

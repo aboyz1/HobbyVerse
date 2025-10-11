@@ -20,6 +20,7 @@ import { useTheme } from "react-native-paper";
 import { spacing, typography } from "../../constants/theme";
 import { LeaderboardScreenProps } from "../../types/navigation";
 import { MaterialIcons } from "@expo/vector-icons";
+import GamificationService from "../../services/GamificationService";
 
 const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
   navigation,
@@ -32,65 +33,6 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
     "global"
   );
 
-  // Mock leaderboard data
-  const mockLeaderboard = [
-    {
-      id: "1",
-      rank: 1,
-      user: {
-        display_name: "HobbyMaster",
-        avatar_url: "https://via.placeholder.com/50",
-        level: 42,
-      },
-      points: 12500,
-      change: 5,
-    },
-    {
-      id: "2",
-      rank: 2,
-      user: {
-        display_name: "CraftKing",
-        avatar_url: "https://via.placeholder.com/50",
-        level: 38,
-      },
-      points: 11200,
-      change: -2,
-    },
-    {
-      id: "3",
-      rank: 3,
-      user: {
-        display_name: "ArtQueen",
-        avatar_url: "https://via.placeholder.com/50",
-        level: 35,
-      },
-      points: 9800,
-      change: 1,
-    },
-    {
-      id: "4",
-      rank: 4,
-      user: {
-        display_name: "TechGuru",
-        avatar_url: "https://via.placeholder.com/50",
-        level: 32,
-      },
-      points: 8900,
-      change: 3,
-    },
-    {
-      id: "5",
-      rank: 5,
-      user: {
-        display_name: "GardenPro",
-        avatar_url: "https://via.placeholder.com/50",
-        level: 29,
-      },
-      points: 7600,
-      change: -1,
-    },
-  ];
-
   useEffect(() => {
     fetchLeaderboard();
   }, [filter]);
@@ -98,11 +40,21 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
   const fetchLeaderboard = async () => {
     try {
       setLoading(true);
-      // Simulate API call with mock data
-      setTimeout(() => {
-        setLeaderboard(mockLeaderboard);
-        setLoading(false);
-      }, 1000);
+      const response = await GamificationService.getLeaderboard(filter, 50);
+
+      if (response.success) {
+        // Handle the response structure properly
+        const leaderboardData =
+          (response as any).leaderboard || response.data || [];
+        const dataArray = Array.isArray(leaderboardData) ? leaderboardData : [];
+
+        // Log the data structure for debugging
+        console.log("Leaderboard data structure:", dataArray);
+
+        setLeaderboard(dataArray);
+      }
+
+      setLoading(false);
     } catch (err) {
       console.error("Error fetching leaderboard:", err);
       setLoading(false);
@@ -118,66 +70,48 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
   const renderLeaderboardItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.leaderboardItem}
-      onPress={() =>
-        navigation.navigate("UserProfile", { userId: item.user.id })
-      }
+      onPress={() => {
+        // Debug log to see what item data we have
+        console.log("Navigating to user profile with item:", item);
+        if (item.id) {
+          navigation.navigate("UserProfile", { userId: item.id });
+        } else {
+          console.log(
+            "User ID not found in item. Available properties:",
+            Object.keys(item)
+          );
+        }
+      }}
     >
       <View style={styles.rankContainer}>
         <Text variant="titleLarge" style={styles.rankText}>
-          {item.rank}
+          {item.rank || 0}.
         </Text>
       </View>
 
       <Avatar.Image
         size={50}
-        source={{ uri: item.user.avatar_url }}
+        source={{ uri: item.avatar_url || "https://via.placeholder.com/50" }}
         style={styles.avatar}
       />
 
       <View style={styles.userInfo}>
         <Text variant="titleMedium" style={styles.displayName}>
-          {item.user.display_name}
+          {item.display_name || "Unknown User"}
         </Text>
         <View style={styles.levelContainer}>
           <MaterialIcons name="star" size={16} color={theme.colors.primary} />
           <Text variant="bodyMedium" style={styles.levelText}>
-            Level {item.user.level}
+            Level {item.level || 1}
           </Text>
         </View>
       </View>
 
       <View style={styles.pointsContainer}>
         <Text variant="titleMedium" style={styles.pointsText}>
-          {item.points.toLocaleString()}
+          {(item.total_points || 0).toLocaleString()}
         </Text>
-        <View style={styles.changeContainer}>
-          {item.change > 0 ? (
-            <MaterialIcons
-              name="arrow-upward"
-              size={16}
-              color={theme.colors.success}
-            />
-          ) : item.change < 0 ? (
-            <MaterialIcons
-              name="arrow-downward"
-              size={16}
-              color={theme.colors.error}
-            />
-          ) : null}
-          <Text
-            variant="bodyMedium"
-            style={[
-              styles.changeText,
-              item.change > 0
-                ? { color: theme.colors.success }
-                : item.change < 0
-                ? { color: theme.colors.error }
-                : { color: theme.colors.onSurfaceVariant },
-            ]}
-          >
-            {item.change !== 0 ? Math.abs(item.change) : ""}
-          </Text>
-        </View>
+        {/* Remove change container as it's not in the API response */}
       </View>
     </TouchableOpacity>
   );
@@ -249,7 +183,7 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
       <FlatList
         data={leaderboard}
         renderItem={renderLeaderboardItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id || Math.random().toString()}
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -355,19 +289,6 @@ const styles = StyleSheet.create({
   },
   pointsText: {
     ...typography.h6,
-  },
-  changeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: spacing.xs,
-  },
-  changeText: {
-    ...typography.caption,
-    fontWeight: "600",
-  },
-  changeValue: {
-    ...typography.caption,
-    fontWeight: "600",
   },
   divider: {
     marginVertical: spacing.sm,

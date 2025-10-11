@@ -3,15 +3,57 @@ import { User, UpdateUserRequest } from "../types/user";
 import { ApiResponse } from "../types/common";
 import AuthService from "./AuthService";
 
+// Define a specific response type for user profile that matches the backend
+interface UserProfileResponse extends Omit<ApiResponse<User>, "data"> {
+  user?: User;
+}
+
+// Define response types for other endpoints that match the backend structure
+interface UserBadgesResponse extends Omit<ApiResponse<any[]>, "data"> {
+  badges?: any[];
+}
+
+interface UserProjectsResponse extends Omit<ApiResponse<any[]>, "data"> {
+  projects?: any[];
+}
+
 class UserService {
   private baseURL = API_BASE_URL;
 
-  async getUserProfile(userId: string): Promise<ApiResponse<User>> {
-    return AuthService.makeRequest<ApiResponse<User>>(`/users/${userId}`);
+  async getUserProfile(userId: string): Promise<UserProfileResponse> {
+    // Add validation for userId
+    if (!userId) {
+      return {
+        success: false,
+        error: "User ID is required",
+      } as UserProfileResponse;
+    }
+
+    const response = await AuthService.makeRequest<any>(`/users/${userId}`);
+
+    // Handle the backend response structure
+    if (response.success && response.user) {
+      return {
+        success: true,
+        user: response.user,
+      };
+    }
+
+    return response;
   }
 
-  async getCurrentUserProfile(): Promise<ApiResponse<User>> {
-    return AuthService.makeRequest<ApiResponse<User>>("/auth/me");
+  async getCurrentUserProfile(): Promise<UserProfileResponse> {
+    const response = await AuthService.makeRequest<any>("/auth/me");
+
+    // Handle the backend response structure
+    if (response.success && response.user) {
+      return {
+        success: true,
+        user: response.user,
+      };
+    }
+
+    return response;
   }
 
   async updateUserProfile(
@@ -35,16 +77,36 @@ class UserService {
     });
   }
 
-  async getUserBadges(userId: string): Promise<ApiResponse<any[]>> {
-    return AuthService.makeRequest<ApiResponse<any[]>>(
+  async getUserBadges(userId: string): Promise<UserBadgesResponse> {
+    const response = await AuthService.makeRequest<any>(
       `/badges/user/${userId}`
     );
+
+    // Handle the backend response structure
+    if (response.success && response.badges) {
+      return {
+        success: true,
+        badges: response.badges,
+      };
+    }
+
+    return response;
   }
 
-  async getUserProjects(userId: string): Promise<ApiResponse<any[]>> {
-    return AuthService.makeRequest<ApiResponse<any[]>>(
+  async getUserProjects(userId: string): Promise<UserProjectsResponse> {
+    const response = await AuthService.makeRequest<any>(
       `/projects?created_by=${userId}`
     );
+
+    // Handle the backend response structure
+    if (response.success && response.projects) {
+      return {
+        success: true,
+        projects: response.projects,
+      };
+    }
+
+    return response;
   }
 
   async getUserChallenges(userId: string): Promise<ApiResponse<any[]>> {

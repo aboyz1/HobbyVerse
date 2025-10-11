@@ -17,7 +17,7 @@ import {
   Divider,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { spacing, typography, colors } from "../../constants/theme";
+import { spacing, typography, colors, shadows } from "../../constants/theme";
 import { UserProfileScreenProps } from "../../types/navigation";
 import UserService from "../../services/UserService";
 import { User } from "../../types/user";
@@ -42,17 +42,34 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
 
   const fetchUserProfile = async () => {
     try {
+      // Validate userId
+      console.log("Fetching user profile for userId:", userId);
+
+      if (!userId) {
+        setError("User ID is missing");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const response = await UserService.getUserProfile(userId);
-      if (response.data) {
-        setUser(response.data);
-        setIsFollowing(response.data.is_following || false);
+
+      console.log("User profile response:", response);
+
+      // Handle the correct response structure from the backend
+      if (response.success && response.user) {
+        setUser(response.user);
+        setIsFollowing(response.user.is_following || false);
+      } else {
+        setError(response.error || "Failed to load user profile");
       }
 
       // Fetch badges
       try {
         const badgesResponse = await UserService.getUserBadges(userId);
-        setBadges(badgesResponse.data || []);
+        if (badgesResponse.success && badgesResponse.badges) {
+          setBadges(badgesResponse.badges);
+        }
       } catch (badgeError) {
         console.log("Error fetching badges:", badgeError);
       }
@@ -60,11 +77,14 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
       // Fetch projects
       try {
         const projectsResponse = await UserService.getUserProjects(userId);
-        setProjects(projectsResponse.data || []);
+        if (projectsResponse.success && projectsResponse.projects) {
+          setProjects(projectsResponse.projects);
+        }
       } catch (projectError) {
         console.log("Error fetching projects:", projectError);
       }
     } catch (err: any) {
+      console.error("Error in fetchUserProfile:", err);
       setError(err.message || "Failed to load user profile");
     } finally {
       setLoading(false);
@@ -73,6 +93,11 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
 
   const handleFollow = async () => {
     try {
+      if (!userId) {
+        console.log("User ID is missing for follow action");
+        return;
+      }
+
       if (isFollowing) {
         await UserService.unfollowUser(userId);
       } else {
@@ -128,6 +153,7 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>User not found</Text>
+          <Text style={styles.errorText}>ID: {userId}</Text>
         </View>
       </SafeAreaView>
     );
@@ -141,193 +167,200 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Profile Header */}
-        <View style={styles.header}>
-          <View style={styles.avatarContainer}>
+        {/* Cover Photo */}
+        <View style={styles.coverContainer}>
+          <Image
+            source={{
+              uri: "https://via.placeholder.com/400x200/1DA1F2/FFFFFF?text=Cover+Photo",
+            }}
+            style={styles.coverImage}
+          />
+          <View style={styles.avatarOverlay}>
             <Avatar.Image
               size={100}
               source={{
                 uri: user.avatar_url || "https://via.placeholder.com/100",
               }}
+              style={styles.profileAvatar}
             />
-          </View>
-
-          <View style={styles.userInfo}>
-            <Text style={styles.displayName}>{user.display_name}</Text>
-            <Text style={styles.username}>
-              @{user.display_name.toLowerCase().replace(/\s+/g, "")}
-            </Text>
-
-            <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{user.total_points || 0}</Text>
-                <Text style={styles.statLabel}>Points</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{user.level || 1}</Text>
-                <Text style={styles.statLabel}>Level</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{user.squads_joined || 0}</Text>
-                <Text style={styles.statLabel}>Squads</Text>
-              </View>
-            </View>
           </View>
         </View>
 
-        {/* Action Buttons */}
-        {!isOwnProfile && (
-          <View style={styles.actionButtons}>
-            <Button
-              mode={isFollowing ? "outlined" : "contained"}
-              onPress={handleFollow}
-              style={styles.followButton}
-            >
-              {isFollowing ? "Following" : "Follow"}
-            </Button>
-            <Button mode="outlined" style={styles.messageButton}>
-              Message
-            </Button>
+        {/* Profile Info */}
+        <View style={styles.profileInfoContainer}>
+          <View style={styles.profileHeader}>
+            <View style={styles.nameContainer}>
+              <Text style={styles.displayName}>{user.display_name}</Text>
+              <Text style={styles.username}>
+                @{user.display_name.toLowerCase().replace(/\s+/g, "")}
+              </Text>
+            </View>
+
+            {!isOwnProfile && (
+              <Button
+                mode={isFollowing ? "outlined" : "contained"}
+                onPress={handleFollow}
+                style={styles.followButton}
+              >
+                {isFollowing ? "Following" : "Follow"}
+              </Button>
+            )}
           </View>
-        )}
 
-        {/* Bio */}
-        {user.bio && (
-          <Card style={styles.section}>
-            <Card.Content>
-              <Text style={styles.sectionTitle}>About</Text>
-              <Text style={{ fontSize: 16 }}>{user.bio}</Text>
-            </Card.Content>
-          </Card>
-        )}
+          {/* Bio */}
+          {user.bio && <Text style={styles.bioText}>{user.bio}</Text>}
 
-        {/* Skills */}
-        {user.skills && user.skills.length > 0 && (
-          <Card style={styles.section}>
-            <Card.Content>
+          {/* Profile Stats */}
+          <View style={styles.profileStats}>
+            <TouchableOpacity
+              style={styles.statItem}
+              onPress={() => navigation.navigate("UserBadges", { userId })}
+            >
+              <Text style={styles.statNumber}>{user.badges_earned || 0}</Text>
+              <Text style={styles.statLabel}>Badges</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.statItem}>
+              <Text style={styles.statNumber}>
+                {user.projects_created || 0}
+              </Text>
+              <Text style={styles.statLabel}>Projects</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.statItem}
+              onPress={() => console.log("Navigate to followers")}
+            >
+              <Text style={styles.statNumber}>{user.followers_count || 0}</Text>
+              <Text style={styles.statLabel}>Followers</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.statItem}
+              onPress={() => console.log("Navigate to following")}
+            >
+              <Text style={styles.statNumber}>{user.following_count || 0}</Text>
+              <Text style={styles.statLabel}>Following</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Skills */}
+          {user.skills && user.skills.length > 0 && (
+            <View style={styles.skillsContainer}>
               <Text style={styles.sectionTitle}>Skills</Text>
               <View style={styles.chipContainer}>
                 {user.skills.map((skill, index) => (
-                  <Chip key={index} style={styles.chip}>
+                  <Chip key={index} style={styles.skillChip}>
                     {skill}
                   </Chip>
                 ))}
               </View>
-            </Card.Content>
-          </Card>
-        )}
+            </View>
+          )}
+        </View>
 
-        {/* Badges */}
+        <Divider style={styles.sectionDivider} />
+
+        {/* Badges Section */}
         {badges.length > 0 && (
-          <Card style={styles.section}>
-            <Card.Content>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>
-                  Badges ({badges.length})
-                </Text>
-                <Button
-                  mode="text"
-                  onPress={() => navigation.navigate("UserBadges", { userId })}
-                  style={styles.viewAllButton}
-                >
-                  View All
-                </Button>
-              </View>
-              <View style={styles.badgesContainer}>
-                {badges.slice(0, 6).map((badge) => (
-                  <TouchableOpacity key={badge.id} style={styles.badgeItem}>
-                    <Avatar.Image
-                      size={40}
-                      source={{
-                        uri: badge.icon_url || "https://via.placeholder.com/40",
-                      }}
-                    />
-                  </TouchableOpacity>
-                ))}
-                {badges.length > 6 && (
-                  <TouchableOpacity style={styles.badgeItem}>
-                    <View style={styles.moreBadges}>
-                      <Text style={styles.moreBadgesText}>
-                        +{badges.length - 6}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </Card.Content>
-          </Card>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Badges ({badges.length})</Text>
+              <Button
+                mode="text"
+                onPress={() => navigation.navigate("UserBadges", { userId })}
+                style={styles.viewAllButton}
+              >
+                View All
+              </Button>
+            </View>
+            <View style={styles.badgesContainer}>
+              {badges.slice(0, 6).map((badge) => (
+                <TouchableOpacity key={badge.id} style={styles.badgeItem}>
+                  <Avatar.Image
+                    size={40}
+                    source={{
+                      uri: badge.icon_url || "https://via.placeholder.com/40",
+                    }}
+                  />
+                </TouchableOpacity>
+              ))}
+              {badges.length > 6 && (
+                <TouchableOpacity style={styles.badgeItem}>
+                  <View style={styles.moreBadges}>
+                    <Text style={styles.moreBadgesText}>
+                      +{badges.length - 6}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
         )}
 
         {/* Recent Projects */}
         {projects.length > 0 && (
-          <Card style={styles.section}>
-            <Card.Content>
-              <Text style={styles.sectionTitle}>
-                Recent Projects ({projects.length})
-              </Text>
-              {projects.slice(0, 3).map((project) => (
-                <TouchableOpacity key={project.id} style={styles.projectItem}>
-                  <Image
-                    source={{
-                      uri:
-                        project.thumbnail_url ||
-                        "https://via.placeholder.com/60",
-                    }}
-                    style={styles.projectImage}
-                  />
-                  <View style={styles.projectInfo}>
-                    <Text variant="bodyMedium" numberOfLines={1}>
-                      {project.title}
-                    </Text>
-                    <Text style={styles.projectMeta}>
-                      {project.difficulty_level} • {project.status}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </Card.Content>
-          </Card>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              Recent Projects ({projects.length})
+            </Text>
+            {projects.slice(0, 3).map((project) => (
+              <TouchableOpacity key={project.id} style={styles.projectItem}>
+                <Image
+                  source={{
+                    uri:
+                      project.thumbnail_url || "https://via.placeholder.com/60",
+                  }}
+                  style={styles.projectImage}
+                />
+                <View style={styles.projectInfo}>
+                  <Text variant="bodyMedium" numberOfLines={1}>
+                    {project.title}
+                  </Text>
+                  <Text style={styles.projectMeta}>
+                    {project.difficulty_level} • {project.status}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         )}
 
-        {/* Stats */}
-        <Card style={styles.section}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Activity</Text>
-            <View style={styles.activityStats}>
-              <View style={styles.activityStat}>
-                <Text style={styles.activityNumber}>
-                  {user.projects_created || 0}
-                </Text>
-                <Text style={styles.activityLabel}>Projects</Text>
-              </View>
-              <View style={styles.activityStat}>
-                <Text style={styles.activityNumber}>
-                  {user.challenges_completed || 0}
-                </Text>
-                <Text style={styles.activityLabel}>Challenges</Text>
-              </View>
-              <View style={styles.activityStat}>
-                <Text style={styles.activityNumber}>
-                  {user.badges_earned || 0}
-                </Text>
-                <Text style={styles.activityLabel}>Badges</Text>
-              </View>
-              <View style={styles.activityStat}>
-                <Text style={styles.activityNumber}>
-                  {user.posts_count || 0}
-                </Text>
-                <Text style={styles.activityLabel}>Posts</Text>
-              </View>
+        {/* Activity Stats */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Activity</Text>
+          <View style={styles.activityStats}>
+            <View style={styles.activityStat}>
+              <Text style={styles.activityNumber}>
+                {user.challenges_completed || 0}
+              </Text>
+              <Text style={styles.activityLabel}>Challenges</Text>
             </View>
-          </Card.Content>
-        </Card>
+            <View style={styles.activityStat}>
+              <Text style={styles.activityNumber}>{user.posts_count || 0}</Text>
+              <Text style={styles.activityLabel}>Posts</Text>
+            </View>
+            <View style={styles.activityStat}>
+              <Text style={styles.activityNumber}>
+                {user.comments_count || 0}
+              </Text>
+              <Text style={styles.activityLabel}>Comments</Text>
+            </View>
+            <View style={styles.activityStat}>
+              <Text style={styles.activityNumber}>
+                {user.squads_joined || 0}
+              </Text>
+              <Text style={styles.activityLabel}>Squads</Text>
+            </View>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: colors.background },
   scrollContainer: { flex: 1 },
   centerContainer: {
     flex: 1,
@@ -347,78 +380,122 @@ const styles = StyleSheet.create({
   retryButton: {
     marginTop: spacing.md,
   },
-  header: {
+
+  // Cover and Avatar
+  coverContainer: {
+    position: "relative",
+  },
+  coverImage: {
+    width: "100%",
+    height: 150,
+  },
+  avatarOverlay: {
+    position: "absolute",
+    bottom: -50,
+    left: spacing.lg,
+  },
+  profileAvatar: {
+    borderWidth: 3,
+    borderColor: colors.surface,
+  },
+
+  // Profile Info
+  profileInfoContainer: {
+    marginTop: 60,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  profileHeader: {
     flexDirection: "row",
-    padding: spacing.lg,
-    alignItems: "center",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: spacing.md,
   },
-  avatarContainer: {
-    marginRight: spacing.lg,
-  },
-  userInfo: {
+  nameContainer: {
     flex: 1,
   },
   displayName: {
-    fontWeight: "600",
+    ...typography.h4,
+    fontWeight: "700",
     marginBottom: spacing.xs,
-    fontSize: 20,
   },
   username: {
     fontSize: 16,
     color: colors.onSurfaceVariant,
-    marginBottom: spacing.md,
   },
-  statsContainer: {
+  followButton: {
+    borderRadius: 20,
+    minWidth: 100,
+  },
+  bioText: {
+    ...typography.body1,
+    marginBottom: spacing.md,
+    lineHeight: 22,
+  },
+
+  // Profile Stats
+  profileStats: {
     flexDirection: "row",
     justifyContent: "space-around",
+    paddingVertical: spacing.md,
+    marginBottom: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    ...shadows.small,
   },
   statItem: {
     alignItems: "center",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
   },
   statNumber: {
     ...typography.h4,
     fontWeight: "700",
   },
   statLabel: {
-    ...typography.body2,
+    fontSize: 14,
     color: colors.onSurfaceVariant,
+    marginTop: spacing.xs,
   },
-  actionButtons: {
-    flexDirection: "row",
-    paddingHorizontal: spacing.lg,
+
+  // Skills
+  skillsContainer: {
     marginBottom: spacing.md,
-  },
-  followButton: {
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  messageButton: {
-    flex: 1,
-    marginLeft: spacing.sm,
-  },
-  section: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    elevation: 1,
   },
   sectionTitle: {
+    ...typography.h5,
     fontWeight: "600",
     marginBottom: spacing.sm,
-    fontSize: 18,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
   },
   chipContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
   },
-  chip: {
+  skillChip: {
     marginRight: spacing.sm,
     marginBottom: spacing.sm,
+    backgroundColor: colors.primaryContainer,
   },
+
+  // Sections
+  section: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.md,
+  },
+  sectionDivider: {
+    marginVertical: spacing.lg,
+  },
+  viewAllButton: {
+    padding: 0,
+  },
+
+  // Badges
   badgesContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -439,6 +516,8 @@ const styles = StyleSheet.create({
     ...typography.body2,
     fontWeight: "600",
   },
+
+  // Projects
   projectItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -458,9 +537,15 @@ const styles = StyleSheet.create({
     color: colors.onSurfaceVariant,
     marginTop: spacing.xs,
   },
+
+  // Activity Stats
   activityStats: {
     flexDirection: "row",
     justifyContent: "space-around",
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: spacing.md,
+    ...shadows.small,
   },
   activityStat: {
     alignItems: "center",
@@ -472,9 +557,7 @@ const styles = StyleSheet.create({
   activityLabel: {
     fontSize: 14,
     color: colors.onSurfaceVariant,
-  },
-  viewAllButton: {
-    padding: 0,
+    marginTop: spacing.xs,
   },
 });
 
