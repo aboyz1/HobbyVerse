@@ -36,8 +36,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     try {
       setLoading(true);
       const response = await UserService.getCurrentUserProfile();
-      if (response.data) {
-        setUser(response.data);
+      if (response.user) {
+        setUser(response.user);
       }
     } catch (error) {
       console.log("Error fetching user profile:", error);
@@ -437,9 +437,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
         {/* Logout Button */}
         <Button
-          mode="outlined"
+          mode="contained"
           onPress={logout}
-          textColor={colors.error}
+          textColor="white"
+          buttonColor={colors.error}
           style={styles.logoutButton}
           icon="logout"
         >
