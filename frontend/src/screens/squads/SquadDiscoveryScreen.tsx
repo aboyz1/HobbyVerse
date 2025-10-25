@@ -19,7 +19,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "react-native-paper";
 import { useFocusEffect } from "@react-navigation/native";
-import { spacing, typography } from "../../constants/theme";
+import { spacing, colors } from "../../constants/theme";
 import { SquadDiscoveryScreenProps } from "../../types/navigation";
 import SquadService from "../../services/SquadService";
 import { useAuth } from "../../contexts/AuthContext";
@@ -383,6 +383,7 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     marginBottom: spacing.sm,
+    backgroundColor: colors.cardBackground,
   },
   filterRow: {
     flexDirection: "row",
@@ -402,6 +403,7 @@ const styles = StyleSheet.create({
   },
   squadCard: {
     marginBottom: spacing.md,
+    backgroundColor: colors.cardBackground,
   },
   squadHeader: {
     flexDirection: "row",

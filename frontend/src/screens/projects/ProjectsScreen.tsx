@@ -377,6 +377,7 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     marginBottom: spacing.sm,
+    backgroundColor: colors.cardBackground,
   },
   filterRow: {
     flexDirection: "row",
@@ -405,6 +406,7 @@ const styles = StyleSheet.create({
   },
   projectCard: {
     elevation: 1,
+    backgroundColor: colors.cardBackground,
   },
   projectHeader: {
     flexDirection: "row",

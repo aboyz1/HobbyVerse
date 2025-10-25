@@ -613,9 +613,10 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
 
           {/* Logout */}
           <Button
-            mode="outlined"
+            mode="contained"
             onPress={showLogoutDialog}
-            textColor={colors.error}
+            textColor="white"
+            buttonColor={colors.error}
             style={styles.logoutButton}
           >
             Log Out
@@ -901,6 +902,7 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: spacing.md,
     elevation: 1,
+    backgroundColor: colors.cardBackground,
   },
   sectionTitle: {
     fontWeight: "600",

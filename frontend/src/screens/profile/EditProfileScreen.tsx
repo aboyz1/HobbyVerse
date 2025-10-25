@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   },
   messageCard: {
     marginBottom: spacing.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.cardBackground,
   },
   messageContent: {
     flexDirection: "row",
@@ -369,6 +369,7 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: spacing.md,
     elevation: 1,
+    backgroundColor: colors.cardBackground,
   },
   sectionTitle: {
     fontWeight: "600",

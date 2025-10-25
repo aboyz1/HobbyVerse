@@ -18,7 +18,7 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "react-native-paper";
-import { spacing, typography } from "../../constants/theme";
+import { spacing, typography, colors } from "../../constants/theme";
 import { MaterialIcons } from "@expo/vector-icons";
 import GamificationService from "../../services/GamificationService";
 import { useAuth } from "../../contexts/AuthContext";
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   infoCard: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
-    backgroundColor: "#e3f2fd", // Same as leaderboard
+    backgroundColor: colors.cardBackground,
   },
   infoRow: {
     flexDirection: "row",
@@ -425,6 +425,7 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     elevation: 2,
+    backgroundColor: colors.cardBackground,
   },
   levelContainer: {
     flexDirection: "row",
@@ -459,6 +460,7 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     elevation: 1,
+    backgroundColor: colors.cardBackground,
   },
   sectionHeader: {
     flexDirection: "row",
