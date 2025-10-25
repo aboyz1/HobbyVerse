@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
-import { Platform } from "react-native";
+import { Platform, View, ViewStyle, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Type imports
@@ -57,6 +57,18 @@ import UserBadgesScreen from "../screens/gamification/UserBadgesScreen";
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
+// Styles for active tab background
+const activeTabBackground: ViewStyle = {
+  backgroundColor: "#E3F2FD", // Light blue - light form of primary color (#1DA1F2)
+  borderRadius: 25, // More rounded to make it pill-shaped
+  paddingVertical: 20, // Increased vertical padding to fully cover both icon and text
+  paddingHorizontal: 25, // Increased horizontal padding to make it wider
+  marginHorizontal: -15, // Negative margin to extend beyond the default boundaries
+  alignSelf: "center",
+  justifyContent: "center",
+  alignItems: "center",
+};
+
 // Tab Navigator Component
 const TabNavigator: React.FC = () => {
   const theme = useTheme();
@@ -68,29 +80,70 @@ const TabNavigator: React.FC = () => {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
+          let label: string;
 
           switch (route.name) {
             case "Home":
               iconName = focused ? "home" : "home-outline";
+              label = "Home";
               break;
             case "Squads":
               iconName = focused ? "people" : "people-outline";
+              label = "Squads";
               break;
             case "Projects":
               iconName = focused ? "folder" : "folder-outline";
+              label = "Projects";
               break;
             case "Challenges":
               iconName = focused ? "trophy" : "trophy-outline";
+              label = "Challenges";
               break;
             case "Profile":
               iconName = focused ? "person" : "person-outline";
+              label = "Profile";
               break;
             default:
               iconName = "help-outline";
+              label = "Unknown";
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return (
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 8,
+                position: "relative",
+              }}
+            >
+              {focused && <View style={activeTabBackground} />}
+              <View
+                style={{
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 1, // Ensure content is above background
+                }}
+              >
+                <Ionicons name={iconName} size={size} color={color} />
+                <View style={{ height: 6 }} />
+                <Text
+                  style={{
+                    color: focused
+                      ? theme.colors.onBackground
+                      : theme.colors.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: "500",
+                  }}
+                >
+                  {label}
+                </Text>
+              </View>
+            </View>
+          );
         },
+        // Custom styling to cover both icon and text
+        tabBarShowLabel: false, // Hide the default label since we're showing it in the icon
         tabBarActiveTintColor: theme.colors.onBackground,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarStyle: {
@@ -111,37 +164,47 @@ const TabNavigator: React.FC = () => {
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{
-          tabBarLabel: "Home",
-        }}
+        options={
+          {
+            // Removed tabBarLabel property
+          }
+        }
       />
       <Tab.Screen
         name="Squads"
         component={SquadsScreen}
-        options={{
-          tabBarLabel: "Squads",
-        }}
+        options={
+          {
+            // Removed tabBarLabel property
+          }
+        }
       />
       <Tab.Screen
         name="Projects"
         component={ProjectsScreen}
-        options={{
-          tabBarLabel: "Projects",
-        }}
+        options={
+          {
+            // Removed tabBarLabel property
+          }
+        }
       />
       <Tab.Screen
         name="Challenges"
         component={ChallengesScreen}
-        options={{
-          tabBarLabel: "Challenges",
-        }}
+        options={
+          {
+            // Removed tabBarLabel property
+          }
+        }
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{
-          tabBarLabel: "Profile",
-        }}
+        options={
+          {
+            // Removed tabBarLabel property
+          }
+        }
       />
     </Tab.Navigator>
   );
